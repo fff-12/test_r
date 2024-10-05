@@ -1,4 +1,5 @@
 # напиши тут свою програму
+from cProfile import label
 from kivy.app import App
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.boxlayout import BoxLayout
@@ -8,7 +9,19 @@ from kivy.uix.textinput import TextInput
 from kivy.core.window import Window
 from kivy.uix.scrollview import ScrollView
 from instructions import txt_instruction, txt_test1, txt_test2, txt_test3, txt_sits
+from seconds import Seconds
 
+name = ""
+age = 7
+p1, p2, p3 = 0, 0, 0
+timer = 0
+
+def check_int(num):
+    try:
+        return int(num)
+    except:
+        return False
+    
 class Result(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -48,7 +61,15 @@ class PulseScr2(Screen):
         self.add_widget(outhe)
 
     def next(self):
-        self.manager.current = "result"
+        global p2, p3
+        p2 = check_int(self.in_result1.text)
+        p3 = check_int(self.in_result2.text)
+        if p2 == False or p3 == False or p2 <= 0 or p3 <= 0:
+            p2, p3 = 0, 0
+            self.in_result1.text = str(p2)
+            self.in_result2.text = str(p3)
+        else:
+            self.manager.current = "result"
 
 class CheckSist(Screen):
     def __init__(self, **kwargs):
@@ -70,26 +91,51 @@ class CheckSist(Screen):
 class PulseScr(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+        self.next_screen = False
+
         outhe = BoxLayout(orientation = "vertical", padding = 8, spacing = 8)
         l1 = BoxLayout(size_hint = (0.8, None), height = "30sp")
+
+        self.lbl_sec = Seconds(3)
+        self.lbl_sec.bind(done = self.sec_finished)
 
         instr = Label(text = txt_test1)
         lb1_res = Label(text = "Введіть результат")
         self.in_result = TextInput(text = "0", multiline = False)
-        self.btn = Button(text = "Продовжити", size_hint = (0.3, 0.2), pos_hint = {"center_x": 0.5})
+        self.in_result.set_disabled(True)
+        self.btn = Button(text = "Почати замір", size_hint = (0.3, 0.2), pos_hint = {"center_x": 0.5})
         self.btn.on_press = self.next
 
         l1.add_widget(lb1_res)
         l1.add_widget(self.in_result)
 
         outhe.add_widget(instr)
+        outhe.add_widget(self.lbl_sec)
         outhe.add_widget(l1)
         outhe.add_widget(self.btn)
 
         self.add_widget(outhe)
 
+    def sec_finished(self, *args):
+        self.next_screen = True
+        self.in_result.set_disabled(False)
+        self.btn.set_disabled(False)
+        self.btn.text = "Продовжити"
+
+
     def next(self):
-        self.manager.current = "sist"
+        if self.next_screen == False:
+            self.btn.set_disabled(True)
+            self.lbl_sec.start()
+        else:
+            global p1
+            p1 = check_int(self.in_result.text)
+            if p1 == False and p1 <= 0:
+                p1 = 0
+                self.in_result.text = str(p1)
+            else:
+                self.manager.current = "sist"
 
 class InstrScr(Screen):
     def __init__(self, **kwargs):
@@ -102,7 +148,7 @@ class InstrScr(Screen):
         lb1 = Label(text = "Введіть ім'я:")
         lb2 = Label(text = "Введіть вік:")
         self.in_name = TextInput(multiline = False)
-        self.in_age = TextInput(multiline = False)
+        self.in_age = TextInput(multiline = False, text = "7")
         self.btn = Button(text = "Start", size_hint = (0.3, 0.2), pos_hint = {"center_x": 0.5})
         self.btn.on_press = self.next
 
@@ -120,7 +166,14 @@ class InstrScr(Screen):
         self.add_widget(outhe)
 
     def next(self):
-        self.manager.current = "pulse1"
+        global age, name
+        name = self.in_name.text 
+        age = check_int(self.in_age.text)
+        if age == False or age < 7:
+            age = 7
+            self.in_age.text = str(age)
+        else:
+            self.manager.current = "pulse1"
 
 class HeartCheck(App):
     def build(self):
