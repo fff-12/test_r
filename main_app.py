@@ -10,6 +10,7 @@ from kivy.core.window import Window
 from kivy.uix.scrollview import ScrollView
 from instructions import txt_instruction, txt_test1, txt_test2, txt_test3, txt_sits
 from seconds import Seconds
+from ruffier import test
 
 name = ""
 age = 7
@@ -27,25 +28,41 @@ class Result(Screen):
         super().__init__(**kwargs)
         outhe = BoxLayout(orientation = "vertical", padding = 8, spacing = 8)
 
-        lb1 = Label(text = "place for results")
+        lb1 = Label(text = name)
+        self.lb1 = Label(text = "place for results")
+        self.on_enter = self.before
         
         outhe.add_widget(lb1)
+        outhe.add_widget(self.lb1)
 
         self.add_widget(outhe)
+
+    def before(self):
+        self.lb1.text = name + "\n" + test(p1, p2, p3, age)
 
 class PulseScr2(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+        self.next_screen = False
+        self.stage = 0
+
         outhe = BoxLayout(orientation = "vertical", padding = 8, spacing = 8)
         l1 = BoxLayout(size_hint = (0.8, None), height = "30sp")
         l2 = BoxLayout(size_hint = (0.8, None), height = "30sp")
 
+        self.lbl_sec = Seconds(15)
+        self.lbl_sec.bind(done = self.sec_finished)
+
         lb1 = Label(text = txt_test3)
         lb2 = Label(text = "Результат:")
         lb3 = Label(text = "Результата після відпочинку:")
-        self.btn = Button(text = "Завершити", size_hint = (0.3, 0.2), pos_hint = {"center_x": 0.5})
+        self.lb4 = Label(text = "Результат:")
+        self.btn = Button(text = "Почати", size_hint = (0.3, 0.2), pos_hint = {"center_x": 0.5})
         self.in_result1 = TextInput(text = "0", multiline = False)
         self.in_result2 = TextInput(text = "0", multiline = False)
+        self.in_result1.set_disabled(True)
+        self.in_result2.set_disabled(True)
         self.btn.on_press = self.next
 
         l1.add_widget(lb2)
@@ -54,22 +71,48 @@ class PulseScr2(Screen):
         l2.add_widget(self.in_result2)
 
         outhe.add_widget(lb1)
+        outhe.add_widget(self.lb4)
+        outhe.add_widget(self.lbl_sec)
         outhe.add_widget(l1)
         outhe.add_widget(l2)
         outhe.add_widget(self.btn)
 
         self.add_widget(outhe)
+    
+    def sec_finished(self, *args):
+        if self.lbl_sec.done:
+            if self.stage == 0:
+                self.stage = 1 
+                self.lb4.text = "Відпочивайте"
+                self.lbl_sec.restart(30)
+                self.in_result1.set_disabled(False)
+
+            elif self.stage == 1:
+                self.stage = 2 
+                self.lb4.text = "Заміряйте пульс"
+                self.lbl_sec.restart(15)
+            
+            elif self.stage == 2:
+                self.next_screen = True 
+                self.lb4.text = "Продовжити"
+                self.in_result2.set_disabled(False)
+                self.btn.set_disabled(False)
 
     def next(self):
-        global p2, p3
-        p2 = check_int(self.in_result1.text)
-        p3 = check_int(self.in_result2.text)
-        if p2 == False or p3 == False or p2 <= 0 or p3 <= 0:
-            p2, p3 = 0, 0
-            self.in_result1.text = str(p2)
-            self.in_result2.text = str(p3)
+        if self.next_screen == False:
+            self.btn.set_disabled(True)
+            self.lbl_sec.start()
+
         else:
-            self.manager.current = "result"
+            global p2, p3
+            p2 = check_int(self.in_result1.text)
+            p3 = check_int(self.in_result2.text)
+            if p2 == False or p3 == False or p2 <= 0 or p3 <= 0:
+                p2, p3 = 0, 0
+                self.in_result1.text = str(p2)
+                self.in_result2.text = str(p3)
+            else:
+                self.manager.current = "result"
 
 class CheckSist(Screen):
     def __init__(self, **kwargs):
@@ -97,7 +140,7 @@ class PulseScr(Screen):
         outhe = BoxLayout(orientation = "vertical", padding = 8, spacing = 8)
         l1 = BoxLayout(size_hint = (0.8, None), height = "30sp")
 
-        self.lbl_sec = Seconds(3)
+        self.lbl_sec = Seconds(1)
         self.lbl_sec.bind(done = self.sec_finished)
 
         instr = Label(text = txt_test1)
